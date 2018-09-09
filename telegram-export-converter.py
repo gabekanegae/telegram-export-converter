@@ -158,8 +158,19 @@ for i in range(len(linesProcessed)):
 
     # Remove "via @" occurences
     linesProcessed[i] = sub(r" +via @.+", "", linesProcessed[i])
-    
-    linesCleaned.append(linesProcessed[i])
+
+# Join lines without line endings
+skip = False
+for i in range(len(linesProcessed)):
+    if skip:
+        skip = False
+        continue
+
+    if linesProcessed[i].endswith("\n"):
+        linesCleaned.append(linesProcessed[i])
+    else:
+        linesCleaned.append(linesProcessed[i] + linesProcessed[i+1])
+        skip = True
 
 # Writes to .txt
 print("Writing to file '{}.txt'...".format(outputFile))
@@ -167,29 +178,25 @@ with open(outputFile + ".txt", "w") as f:
     for line in linesCleaned:
         f.write(line)
 
-# Reads .txt contents back
-linesRead = []
-with open(outputFile + ".txt") as f:
-    for line in f:
-        linesRead.append(line)
-
 # Writes to .csv
 print("Writing to file '{}.csv'...".format(outputFile))
 with open(outputFile + ".csv", "w", encoding="UTF-16") as f:
-    for i in range(len(linesRead)):
-        linesRead[i] = linesRead[i].replace("\n", "")
-        linesRead[i] = linesRead[i].replace("\"", "'")
+    for i in range(len(linesCleaned)):
+        linesCleaned[i] = linesCleaned[i].replace("\n", "")
+        linesCleaned[i] = linesCleaned[i].replace("\"", "'")
 
     try:
-        assert len(linesRead) % 5 == 0
+        assert len(linesCleaned) % 5 == 0
     except AssertionError:
         print("Something bad happened. Exiting...")
+        print(len(linesCleaned))
+        exit()
 
-    for i in range(0, len(linesRead), 5):
-        f.write("\"" + linesRead[i] + "\"" + CSV_SEP)
-        f.write("\"" + linesRead[i+1] + "\"" + CSV_SEP)
-        f.write("\"" + linesRead[i+2] + "\"" + CSV_SEP)
-        f.write("\"" + linesRead[i+3] + "\"" + CSV_SEP)
-        f.write("\"" + linesRead[i+4] + "\"" + "\n")
+    for i in range(0, len(linesCleaned), 5):
+        f.write("\"" + linesCleaned[i] + "\"" + CSV_SEP)
+        f.write("\"" + linesCleaned[i+1] + "\"" + CSV_SEP)
+        f.write("\"" + linesCleaned[i+2] + "\"" + CSV_SEP)
+        f.write("\"" + linesCleaned[i+3] + "\"" + CSV_SEP)
+        f.write("\"" + linesCleaned[i+4] + "\"" + "\n")
 
 print("All done!")
