@@ -157,9 +157,7 @@ for i in range(len(linesProcessed)):
         linesProcessed[i] = sub(r" +via @.+\| FWD", " | FWD", linesProcessed[i])
 
     # Remove "via @" occurences
-    if FWD_SENDER in linesProcessed[i]:
-        linesProcessed[i] = sub(r" +via @.+\| FWD", " | FWD", linesProcessed[i])
-    linesProcessed[i] = sub(r"via @.+", "", linesProcessed[i])
+    linesProcessed[i] = sub(r" +via @.+", "", linesProcessed[i])
     
     linesCleaned.append(linesProcessed[i])
 
@@ -182,12 +180,16 @@ with open(outputFile + ".csv", "w", encoding="UTF-16") as f:
         linesRead[i] = linesRead[i].replace("\n", "")
         linesRead[i] = linesRead[i].replace("\"", "'")
 
-    for i in range(len(linesRead)):
-        if i % 5 == 0:
-            f.write("\"" + linesRead[i] + "\"" + CSV_SEP)
-            f.write("\"" + linesRead[i+1] + "\"" + CSV_SEP)
-            f.write("\"" + linesRead[i+2] + "\"" + CSV_SEP)
-            f.write("\"" + linesRead[i+3] + "\"" + CSV_SEP)
-            f.write("\"" + linesRead[i+4] + "\"" + "\n")
+    try:
+        assert len(linesRead) % 5 == 0
+    except AssertionError:
+        print("Something bad happened. Exiting...")
+
+    for i in range(0, len(linesRead), 5):
+        f.write("\"" + linesRead[i] + "\"" + CSV_SEP)
+        f.write("\"" + linesRead[i+1] + "\"" + CSV_SEP)
+        f.write("\"" + linesRead[i+2] + "\"" + CSV_SEP)
+        f.write("\"" + linesRead[i+3] + "\"" + CSV_SEP)
+        f.write("\"" + linesRead[i+4] + "\"" + "\n")
 
 print("All done!")
