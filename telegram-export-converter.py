@@ -8,7 +8,7 @@
 # Code by: Gabriel Kanegae Souza                       #
 ########################################################
 
-from os import listdir, remove
+from os import listdir
 from re import sub
 from sys import argv
 
@@ -21,7 +21,7 @@ MESSAGE = '<div class="text">\n'
 MEDIA = '<div class="title bold">\n'
 REPLY = '<div class="reply_to details">\n'
 
-# Identifiers for the type of the elements
+# Identifiers for the element types
 MEDIA_TAG = "<media>\n"
 MESSAGE_TAG = "<msg>\n"
 NOFWD_TAG = "<nfwd>\n"
@@ -64,7 +64,7 @@ for file in messageFiles:
 
 # Sets default filename as the chat's name, if not provided as argument
 if outputFile == "":
-    outputFile = "Telegram-" + linesRaw[15][:-1].lstrip().replace(" ", "_")
+    outputFile = "Telegram-" + linesRaw[15][:-1].replace(" ", "_")
 
 print("Processing...")
 linesProcessed = []
@@ -76,7 +76,7 @@ lastNameShown, lastFWDShown = "", ""
 for i in range(len(linesRaw)):
     # Sender's name
     if linesRaw[i] == SENDER:
-        # If it's a fwd, show forwarder's name
+        # If it's a forward, show forwarder's name
         if linesRaw[i-1] == FWD_MSG and linesRaw[i-11] != SENDER and linesRaw[i-10] != SENDER:
             linesProcessed.append(lastNameShown)
 
@@ -169,6 +169,7 @@ with open(outputFile + ".txt", "w") as f:
     for line in linesCleaned:
         f.write(line)
 
+# Reads .txt contents back
 linesRead = []
 with open(outputFile + ".txt") as f:
     for line in f:
