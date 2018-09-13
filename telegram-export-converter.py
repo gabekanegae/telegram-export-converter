@@ -8,9 +8,19 @@
 # Code by: Gabriel Kanegae Souza                       #
 ########################################################
 
-from os import listdir
+from os import listdir, chdir
+from os.path import isdir
 from re import sub
 from sys import argv
+
+# Command line options
+HELP_FLAG = "-h"
+TXT_FLAG = "-txt"
+CSV_FLAG = "-csv"
+OUTPUT_FLAG = "-o"
+DIR_FLAG = "-d"
+generateTXT, generateCSV = True, True
+outputFile, dirName = "", ""
 
 # HTML div headers for each element
 TIMESTAMP = '<div class="pull_right date details" title="'
@@ -29,20 +39,61 @@ NOFWD_TAG = "<nfwd>\n"
 # Separator for the .csv file
 CSV_SEP = ";"
 
-print("Starting...")
+# Invalid flag
+args = [HELP_FLAG, TXT_FLAG, CSV_FLAG, OUTPUT_FLAG, DIR_FLAG]
+for arg in argv:
+    if arg.startswith("-") and arg not in args:
+        print("Unknown flag '{}'. Run with {} for more info.".format(arg, HELP_FLAG))
+        exit()
 
-# Receives output filename as argument
-outputFile = ""
-if len(argv) > 1:
-    outputFile = argv[1].split(".")[0]
-    print("Will save file as '{}.txt' and '{}.csv'...".format(outputFile, outputFile))
+# Help flag
+if HELP_FLAG in argv:
+    print("USAGE: python3 telegram-export-converter.py [FLAGS]")
+    print()
+    print("FLAGS:")
+    print("{} \t\t - Shows this help page.".format(HELP_FLAG))
+    print("{}, {} \t - Generates only the .txt or .csv file. Default: generates both".format(TXT_FLAG, CSV_FLAG))
+    print("{} (FILENAME) \t - Sets output filename. Default: Telegram-CHATNAME".format(OUTPUT_FLAG))
+    print("{} (DIRECTORY) \t - Runs the script as if in that directory,".format(DIR_FLAG))
+    print("\t\t but generating output files in the current directory.")
+    exit()
 
-print("Looking for message files...")
+# .txt and .csv selection flags
+if TXT_FLAG in argv and CSV_FLAG not in argv:
+    generateCSV = False
+elif CSV_FLAG in argv and TXT_FLAG not in argv:
+    generateTXT = False
+
+# Output filename flag
+if OUTPUT_FLAG in argv:
+    try:
+        outputFile = argv[argv.index(OUTPUT_FLAG)+1].split(".")[0]
+    except IndexError:
+        print("No filename informed for flag {}. Run with {} for more information.".format(OUTPUT_FLAG, HELP_FLAG))
+        exit()
+
+# Directory flag
+if DIR_FLAG in argv:
+    try:
+        dirName = argv[argv.index(DIR_FLAG)+1].replace("/", "")
+    except IndexError:
+        print("No filename informed for flag {}. Run with {} for more information.".format(DIR_FLAG, HELP_FLAG))
+        exit()
+
+# Check if directory from -d actually exists
+listdirFull = listdir()
+if dirName != "":
+    if dirName not in listdirFull or isdir(dirName) == False:
+        print("Directory '{}' doesn't exist. Exiting...".format(dirName))
+        exit()
+    print("Starting at directory '{}'. ".format(dirName))
+    chdir(dirName)
+else:
+    print("Starting...")
 
 # Scans current directory for message<n>.html Telegram chat export files
 messageFiles = []
 counter = 1
-listdirFull = listdir()
 for file in listdirFull:
     if file.startswith("messages") and file.endswith(".html"):
         messageFiles.append("messages" + (str(counter) if counter > 1 else "") + ".html")
@@ -139,7 +190,6 @@ htmlEntities = {"&lt;": "<", "&gt;": ">", "&amp;": "&",
                 "&copy;": "©", "&reg;": "®"}
 
 # Final cleanup, to remove leftover HTML tags
-linesCleaned = []
 for i in range(len(linesProcessed)):
     # Remove HTML newlines
     linesProcessed[i] = linesProcessed[i].replace("<br>", " ")
@@ -161,42 +211,49 @@ for i in range(len(linesProcessed)):
 
 # Join lines without line endings
 skip = False
+linesFinished = []
 for i in range(len(linesProcessed)):
     if skip:
         skip = False
         continue
 
     if linesProcessed[i].endswith("\n"):
-        linesCleaned.append(linesProcessed[i])
+        linesFinished.append(linesProcessed[i])
     else:
-        linesCleaned.append(linesProcessed[i] + linesProcessed[i+1])
+        linesFinished.append(linesProcessed[i] + linesProcessed[i+1])
         skip = True
 
+# If inside a directory, go back
+if DIR_FLAG in argv:
+    chdir("..")
+
 # Writes to .txt
-print("Writing to file '{}.txt'...".format(outputFile))
-with open(outputFile + ".txt", "w") as f:
-    for line in linesCleaned:
-        f.write(line)
+if generateTXT:
+    print("Writing to file '{}.txt'...".format(outputFile))
+    with open(outputFile + ".txt", "w") as f:
+        for line in linesFinished:
+            f.write(line)
 
 # Writes to .csv
-print("Writing to file '{}.csv'...".format(outputFile))
-with open(outputFile + ".csv", "w", encoding="UTF-16") as f:
-    for i in range(len(linesCleaned)):
-        linesCleaned[i] = linesCleaned[i].replace("\n", "")
-        linesCleaned[i] = linesCleaned[i].replace("\"", "'")
+if generateCSV:
+    print("Writing to file '{}.csv'...".format(outputFile))
+    with open(outputFile + ".csv", "w", encoding="UTF-16") as f:
+        for i in range(len(linesFinished)):
+            linesFinished[i] = linesFinished[i].replace("\n", "")
+            linesFinished[i] = linesFinished[i].replace("\"", "'")
 
-    try:
-        assert len(linesCleaned) % 5 == 0
-    except AssertionError:
-        print("Something bad happened. Exiting...")
-        print(len(linesCleaned))
-        exit()
+        try:
+            assert len(linesFinished) % 5 == 0
+        except AssertionError:
+            print("Something bad happened. Exiting...")
+            print(len(linesFinished))
+            exit()
 
-    for i in range(0, len(linesCleaned), 5):
-        f.write("\"" + linesCleaned[i] + "\"" + CSV_SEP)
-        f.write("\"" + linesCleaned[i+1] + "\"" + CSV_SEP)
-        f.write("\"" + linesCleaned[i+2] + "\"" + CSV_SEP)
-        f.write("\"" + linesCleaned[i+3] + "\"" + CSV_SEP)
-        f.write("\"" + linesCleaned[i+4] + "\"" + "\n")
+        for i in range(0, len(linesFinished), 5):
+            f.write("\"" + linesFinished[i] + "\"" + CSV_SEP)
+            f.write("\"" + linesFinished[i+1] + "\"" + CSV_SEP)
+            f.write("\"" + linesFinished[i+2] + "\"" + CSV_SEP)
+            f.write("\"" + linesFinished[i+3] + "\"" + CSV_SEP)
+            f.write("\"" + linesFinished[i+4] + "\"" + "\n")
 
 print("All done!")
