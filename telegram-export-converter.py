@@ -178,10 +178,8 @@ for i in range(len(linesRaw)):
         if linesRaw[i-9] != FWD_MSG:
             linesProcessed.append(NOFWD_TAG)
 
-        # If it's a call
+        # If it's regular media
         if linesRaw[i+3] != CALL:
-            linesProcessed.append(CALL_TAG)
-        else: # It's regular media
             linesProcessed.append(MEDIA_TAG)
 
             # If it has a description, show it in the same line
@@ -189,6 +187,9 @@ for i in range(len(linesRaw)):
                 linesProcessed.append("[" + linesRaw[i+1][:-1] + "] ")
             else:
                 linesProcessed.append("[" + linesRaw[i+1][:-1] + "]\n")
+        else: # It's a call
+            linesProcessed.append(CALL_TAG)
+            linesProcessed.append("\n")
 
 htmlEntities = {"&lt;": "<", "&gt;": ">", "&amp;": "&",
                 "&quot;": "\"", "&apos;": "'", "&cent;": "¢",
