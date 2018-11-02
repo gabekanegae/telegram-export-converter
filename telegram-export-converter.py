@@ -30,11 +30,13 @@ FWD_SENDER = '<span class="details">'
 MESSAGE = '<div class="text">\n'
 MEDIA = '<div class="title bold">\n'
 REPLY = '<div class="reply_to details">\n'
+CALL = '<div class="status details">\n'
 
 # Identifiers for the element types
 MEDIA_TAG = "<media>\n"
 MESSAGE_TAG = "<msg>\n"
 NOFWD_TAG = "<nfwd>\n"
+CALL_TAG = "<call>\n"
 
 # Separator for the .csv file
 CSV_SEP = ";"
@@ -108,7 +110,7 @@ print("Loading all {} message files...".format(len(messageFiles)))
 # Loads all files content into memory
 linesRaw = []
 for file in messageFiles:
-    with open(file) as f:
+    with open(file, encoding="UTF-8") as f:
         for line in f:
             if len(line) > 0 and line != "\n":
                 linesRaw.append(line.replace("\n", "").strip() + "\n")
@@ -176,13 +178,17 @@ for i in range(len(linesRaw)):
         if linesRaw[i-9] != FWD_MSG:
             linesProcessed.append(NOFWD_TAG)
 
-        linesProcessed.append(MEDIA_TAG)
+        # If it's a call
+        if linesRaw[i+3] != CALL:
+            linesProcessed.append(CALL_TAG)
+        else: # It's regular media
+            linesProcessed.append(MEDIA_TAG)
 
-        # If it has a description, show it in the same line
-        if linesRaw[i+12] == MESSAGE:
-            linesProcessed.append("[" + linesRaw[i+1][:-1] + "] ")
-        else:
-            linesProcessed.append("[" + linesRaw[i+1][:-1] + "]\n")
+            # If it has a description, show it in the same line
+            if linesRaw[i+12] == MESSAGE:
+                linesProcessed.append("[" + linesRaw[i+1][:-1] + "] ")
+            else:
+                linesProcessed.append("[" + linesRaw[i+1][:-1] + "]\n")
 
 htmlEntities = {"&lt;": "<", "&gt;": ">", "&amp;": "&",
                 "&quot;": "\"", "&apos;": "'", "&cent;": "¢",
@@ -230,7 +236,7 @@ if DIR_FLAG in argv:
 # Writes to .txt
 if generateTXT:
     print("Writing to file '{}.txt'...".format(outputFile))
-    with open(outputFile + ".txt", "w") as f:
+    with open(outputFile + ".txt", "w", encoding="UTF-16") as f:
         for line in linesFinished:
             f.write(line)
 
