@@ -1,4 +1,4 @@
-# telegram-export-converter
+# Telegram Export and Converter Tool
 A Python script to convert Telegram .html chat export files to easier to process .txt and .csv.
 
 Made and tested with Python 3.6.5
