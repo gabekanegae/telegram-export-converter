@@ -31,12 +31,14 @@ MESSAGE = '<div class="text">\n'
 MEDIA = '<div class="title bold">\n'
 REPLY = '<div class="reply_to details">\n'
 CALL = '<div class="status details">\n'
+POLL = '<div class="question bold">\n'
 
 # Identifiers for the element types
 MEDIA_TAG = "<media>\n"
 MESSAGE_TAG = "<msg>\n"
 NOFWD_TAG = "<nfwd>\n"
 CALL_TAG = "<call>\n"
+POLL_TAG = "<poll>\n"
 
 # Separator for the .csv file
 CSV_SEP = ";"
@@ -190,6 +192,23 @@ for i in range(len(linesRaw)):
         else: # It's a call
             linesProcessed.append(CALL_TAG)
             linesProcessed.append("\n")
+
+    # Polls
+    elif linesRaw[i] == POLL:
+        # If it's not the first message sent, show sender's name
+        if linesRaw[i-5] != SENDER and linesRaw[i-8] != SENDER:
+            print(len(linesProcessed))
+            linesProcessed.append(lastNameShown)
+
+        # If it's not a forward
+        if linesRaw[i-6] != FWD_MSG:
+            linesProcessed.append(NOFWD_TAG)
+
+        # Add tag
+        linesProcessed.append(POLL_TAG)
+
+        # List question as message content
+        linesProcessed.append(linesRaw[i+1])
 
 htmlEntities = {"&lt;": "<", "&gt;": ">", "&amp;": "&",
                 "&quot;": "\"", "&apos;": "'", "&cent;": "¢",
