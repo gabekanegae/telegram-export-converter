@@ -197,7 +197,6 @@ for i in range(len(linesRaw)):
     elif linesRaw[i] == POLL:
         # If it's not the first message sent, show sender's name
         if linesRaw[i-5] != SENDER and linesRaw[i-8] != SENDER:
-            print(len(linesProcessed))
             linesProcessed.append(lastNameShown)
 
         # If it's not a forward
@@ -272,7 +271,6 @@ if generateCSV:
             assert len(linesFinished) % 5 == 0
         except AssertionError:
             print("Something bad happened. Exiting...")
-            print(len(linesFinished))
             exit()
 
         for i in range(0, len(linesFinished), 5):
