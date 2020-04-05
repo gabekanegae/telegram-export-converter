@@ -74,7 +74,7 @@ for file in messageFiles:
 
 # Sets output filename as the chat's name
 chatName = lines[15]
-outputFile = "Telegram-" + chatName.replace(" ", "_") + ".csv"
+outputFile = "Telegram-" + "".join(c if c.isalnum() else "_" for c in chatName) + ".csv"
 
 ################################################################################
 
