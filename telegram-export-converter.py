@@ -1,8 +1,9 @@
+from html import entities
+from time import time
 from sys import argv
+import csv
 import os
 import re
-import csv
-from html import entities
 
 class Message:
     def __init__(self):
@@ -21,6 +22,8 @@ class Message:
         if self.content: self.content = self.content.strip()
 
         return (self.messageID, self.timestamp, self.sender, self.fwd, self.reply, self.content)
+
+t0 = time()
 
 messageIDNewPattern = re.compile('<div class="message default clearfix" id="([^"]+)')
 messageIDJoinedPattern = re.compile('<div class="message default clearfix joined" id="([^"]+)')
@@ -78,7 +81,7 @@ outputFile = "Telegram-" + "".join(c if c.isalnum() else "_" for c in chatName) 
 
 ################################################################################
 
-print("Processing...")
+print("Processing '{}'...".format(chatName))
 
 messages = []
 cur = 0
@@ -188,7 +191,7 @@ while cur < len(lines):
         m.content = re.sub(linkHTMLPattern, "", m.content)
 
     # Remove '</div>' (happens when it's an animated dice roll - might change soon?)
-    if "</div>" in m.content:
+    if m.content == "</div>":
         m.content = "[Dice roll]"
 
     messages.append(m)
@@ -198,4 +201,4 @@ while cur < len(lines):
 with open(outputFile, "w+", encoding="UTF-8", newline="") as f:
     csv.writer(f).writerows([m.toTuple() for m in messages])
 
-print("All done!")
+print("Written to '{}' in {:.2f}s.".format(outputFile, time()-t0))
