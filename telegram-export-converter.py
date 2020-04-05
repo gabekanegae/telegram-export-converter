@@ -187,6 +187,10 @@ while cur < len(lines):
     if "<a" in m.content:
         m.content = re.sub(linkHTMLPattern, "", m.content)
 
+    # Remove '</div>' (happens when it's an animated dice roll - might change soon?)
+    if "</div>" in m.content:
+        m.content = "[Dice roll]"
+
     messages.append(m)
     cur += 1
 
