@@ -11,7 +11,6 @@ class Message:
         self.sender = None
         self.fwd = None
         self.reply = None
-        self.type = "msg"
         self.content = None
 
     def toTuple(self):
@@ -19,43 +18,7 @@ class Message:
         if self.fwd: self.fwd = self.fwd.strip()
         if self.content: self.content = self.content.strip()
 
-        return (self.messageID, self.timestamp, self.sender, self.fwd, self.reply, self.type, self.content)
-
-################################################################################
-
-print("Starting...")
-listdirFull = os.listdir()
-
-# Scans current directory for message<n>.html Telegram chat export files
-messageFiles = []
-counter = 1
-for file in listdirFull:
-    if file.startswith("messages") and file.endswith(".html"):
-        messageFiles.append("messages" + (str(counter) if counter > 1 else "") + ".html")
-        counter += 1
-
-if not messageFiles:
-    print("No message.html files found. Are you sure the script is in the right directory? Exiting...")
-    exit()
-
-print("Loading all {} message files...".format(len(messageFiles)))
-
-# Loads all files content into memory
-lines = []
-for file in messageFiles:
-    with open(file, encoding="UTF-8") as f:
-        lines += [line.replace("\n", "").strip() for line in f if line.strip()]
-
-with open("raw.txt", "w+", encoding="UTF-8") as f:
-    for line in lines:
-        f.write(line)
-        f.write("\n")
-
-# Sets output filename as the chat's name
-chatName = lines[15]
-outputFile = "Telegram-" + chatName.replace(" ", "_") + ".csv"
-
-################################################################################
+        return (self.messageID, self.timestamp, self.sender, self.fwd, self.reply, self.content)
 
 messageIDNewPattern = re.compile('<div class="message default clearfix" id="([^"]+)')
 messageIDJoinedPattern = re.compile('<div class="message default clearfix joined" id="([^"]+)')
@@ -79,13 +42,47 @@ linkHTMLPattern = re.compile('</?a[^<]*>')
 
 htmlTags = ["em", "strong", "code", "pre", "s"]
 
-print("Processing...")
-messages = []
+################################################################################
 
+print("Starting...")
+listdirFull = os.listdir()
+
+# Scans current directory for message<n>.html Telegram chat export files
+messageFiles = []
+n = 1
+for file in listdirFull:
+    if file.startswith("messages") and file.endswith(".html"):
+        messageFiles.append("messages" + (str(n) if n > 1 else "") + ".html")
+        n += 1
+
+if not messageFiles:
+    print("No message.html files found. Are you sure the script is in the right directory? Exiting...")
+    exit()
+
+print("Loading all {} message files...".format(len(messageFiles)))
+
+# Loads all files content into memory
+lines = []
+for file in messageFiles:
+    with open(file, encoding="UTF-8") as f:
+        lines += [line.replace("\n", "").strip() for line in f if line.strip()]
+
+# with open("rawHTML.txt", "w+", encoding="UTF-8") as f:
+#     f.write("\n".join(lines) + "\n")
+
+# Sets output filename as the chat's name
+chatName = lines[15]
+outputFile = "Telegram-" + chatName.replace(" ", "_") + ".csv"
+
+################################################################################
+
+print("Processing...")
+
+messages = []
 cur = 0
-total = 0
 lastSender = None
 lastFWDSender = None
+
 while cur < len(lines):
     new = True
     messageID = re.findall(messageIDNewPattern, lines[cur])
@@ -93,123 +90,96 @@ while cur < len(lines):
         new = False
         messageID = re.findall(messageIDJoinedPattern, lines[cur])
 
-    if messageID:
-        m = Message()
-        m.line = cur
-        m.messageID = messageID[0].replace("message", "")
+    if not messageID:
+        cur += 1
+        continue
 
-        if new:
-            cur += 9
-            timestamp = re.findall(timestampPattern, lines[cur])
-            m.timestamp = timestamp[0]
+    m = Message()
+    m.line = cur
+    m.messageID = messageID[0].replace("message", "")
 
-            cur += 4
-            m.sender = lines[cur]
-            lastSender = m.sender
+    if new:
+        cur += 9
+        timestamp = re.findall(timestampPattern, lines[cur])
+        m.timestamp = timestamp[0]
 
-            cur += 3
-            m.content = lines[cur]
-        else: # Same sender as the message before
-            cur += 2
-            timestamp = re.findall(timestampPattern, lines[cur])
-            m.timestamp = timestamp[0]
+        cur += 4
+        m.sender = lines[cur]
+        lastSender = m.sender
 
-            m.sender = lastSender
+        cur += 3
+        m.content = lines[cur]
+    else: # Same sender as the message before
+        cur += 2
+        timestamp = re.findall(timestampPattern, lines[cur])
+        m.timestamp = timestamp[0]
 
-            cur += 4
-            m.content = lines[cur]
+        m.sender = lastSender
 
-        isFWD = re.findall(fwdPattern, m.content)
-        isSameFWDText = re.findall(sameFWDTextPattern, m.content)
-        isSameFWDMedia = re.findall(sameFWDMediaPattern, m.content)
-        isPhoto = re.findall(photoPattern, m.content)
-        isVideo = re.findall(videoPattern, m.content)
-        isVoice = re.findall(voicePattern, m.content)
-        isAudio = re.findall(audioPattern, m.content)
-        isFile = re.findall(filePattern, m.content)
-        isLocation = re.findall(locationPattern, m.content)
-        isPoll = re.findall(pollPattern, m.content)
-        isReply = re.findall(replyPattern, m.content)
+        cur += 4
+        m.content = lines[cur]
 
-        if isFWD:
-            cur += 8
-            fwdSender = re.findall(fwdSenderPattern, lines[cur])
-            m.fwd = fwdSender[0]
-            lastFWDSender = m.fwd
+    isFWD = re.findall(fwdPattern, m.content)
+    isSameFWDText = re.findall(sameFWDTextPattern, m.content)
+    isSameFWDMedia = re.findall(sameFWDMediaPattern, m.content)
+    isReply = re.findall(replyPattern, m.content)
 
-            cur += 3
-            m.content = lines[cur]
-        elif isSameFWDText:
-            m.fwd = lastFWDSender
+    if isFWD:
+        cur += 8
+        fwdSender = re.findall(fwdSenderPattern, lines[cur])
+        m.fwd = fwdSender[0]
+        lastFWDSender = m.fwd
 
-            cur += 1
-            m.content = lines[cur]
-        elif isSameFWDMedia:
-            m.fwd = lastFWDSender
+        cur += 3
+        m.content = lines[cur]
+    elif isSameFWDText:
+        m.fwd = lastFWDSender
 
-            m.type = "media"
+        cur += 1
+        m.content = lines[cur]
+    elif isSameFWDMedia:
+        m.fwd = lastFWDSender
 
-            cur += 6
-            m.content = "["+lines[cur]+"]"
-        elif isPhoto or isVideo or isVoice or isAudio or isFile:
-            m.type = "media"
+        cur += 6
+        m.content = "["+lines[cur]+"]"
+    elif isReply:
+        m.reply = isReply[0].replace("message", "")
 
-            cur += 5
-            m.content = "["+lines[cur]+"]"
-        elif isLocation:
-            m.type = "media"
+        cur += 3
+        m.content = lines[cur]
 
-            cur += 5
-            m.content = "["+lines[cur] + " - " + lines[cur+3] + "]"
-        elif isPoll:
-            m.type = "media"
+    isPhoto = re.findall(photoPattern, m.content)
+    isVideo = re.findall(videoPattern, m.content)
+    isVoice = re.findall(voicePattern, m.content)
+    isAudio = re.findall(audioPattern, m.content)
+    isFile = re.findall(filePattern, m.content)
+    isLocation = re.findall(locationPattern, m.content)
+    isPoll = re.findall(pollPattern, m.content)
 
-            m.content = "["+lines[cur+5] + " - " + lines[cur+2] + "]"
-        elif isReply:
-            m.reply = isReply[0].replace("message", "")
+    if isPhoto or isVideo or isVoice or isAudio or isFile:
+        cur += 5
+        m.content = "["+lines[cur]+"]"
+    elif isLocation:
+        cur += 5
+        m.content = "["+lines[cur] + " - " + lines[cur+3] + "]"
+    elif isPoll:
+        m.content = "["+lines[cur+5] + " - " + lines[cur+2] + "]"
 
-            cur += 3
-            m.content = lines[cur]
+    if "&" in m.content:
+        for original, replaced in entities.html5.items():
+            m.content = m.content.replace("&"+original+";", replaced)
 
-        if isFWD or isReply:
-            isPhoto = re.findall(photoPattern, m.content)
-            isVideo = re.findall(videoPattern, m.content)
-            isVoice = re.findall(voicePattern, m.content)
-            isAudio = re.findall(audioPattern, m.content)
-            isFile = re.findall(filePattern, m.content)
-            isLocation = re.findall(locationPattern, m.content)
-            isPoll = re.findall(pollPattern, m.content)
+    if "<br>" in m.content:
+        m.content = m.content.replace("<br>", "\\n")
 
-            if isPhoto or isVideo or isVoice or isAudio or isFile:
-                m.type = "media"
+    for original in htmlTags:
+        m.content = m.content.replace("<"+original+">", "")
+        m.content = m.content.replace("</"+original+">", "")
 
-                cur += 5
-                m.content = "["+lines[cur]+"]"
-            elif isLocation:
-                m.type = "media"
+    if "<a" in m.content:
+        m.content = re.sub(linkHTMLPattern, "", m.content)
 
-                cur += 5
-                m.content = "["+lines[cur] + " - " + lines[cur+3] + "]"
-            elif isPoll:
-                m.type = "media"
-
-                m.content = "["+lines[cur+5] + " - " + lines[cur+2] + "]"
-
-        if "&" in m.content:
-            for original, replaced in entities.html5.items():
-                m.content = m.content.replace("&"+original+";", replaced)
-
-        if "<br>" in m.content:
-            m.content = m.content.replace("<br>", "\\n")
-
-        for original in htmlTags:
-            m.content = m.content.replace("<"+original+">", "")
-            m.content = m.content.replace("</"+original+">", "")
-
-        if "<a" in m.content:
-            m.content = re.sub(linkHTMLPattern, "", m.content)
-
-        messages.append(m)
+    messages.append(m)
     cur += 1
 
 with open(outputFile, "w+", encoding="UTF-8", newline="") as f:
