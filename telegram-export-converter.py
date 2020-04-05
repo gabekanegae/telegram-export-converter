@@ -1,99 +1,30 @@
-########################################################
-#            Telegram Chat History Converter           #
-#                        Sep 2018                      #
-#                                                      #
-#   Converts all message.html Telegram files to .txt   #
-#        and .csv files for easier processing.         #
-#                                                      #
-# Code by: Gabriel Kanegae Souza                       #
-########################################################
-
-from os import listdir, chdir
-from os.path import isdir
-from re import sub
 from sys import argv
+import os
+import re
+import csv
+from html import entities
 
-# Command line options
-HELP_FLAG = "-h"
-TXT_FLAG = "-txt"
-CSV_FLAG = "-csv"
-OUTPUT_FLAG = "-o"
-DIR_FLAG = "-d"
-generateTXT, generateCSV = True, True
-outputFile, dirName = "", ""
+class Message:
+    def __init__(self):
+        self.messageID = None
+        self.timestamp = None
+        self.sender = None
+        self.fwd = None
+        self.reply = None
+        self.type = "msg"
+        self.content = None
 
-# HTML div headers for each element
-TIMESTAMP = '<div class="pull_right date details" title="'
-SENDER = '<div class="from_name">\n'
-FWD_MSG = '<div class="forwarded body">\n'
-FWD_SENDER = '<span class="details">'
-MESSAGE = '<div class="text">\n'
-MEDIA = '<div class="title bold">\n'
-REPLY = '<div class="reply_to details">\n'
-CALL = '<div class="status details">\n'
-POLL = '<div class="question bold">\n'
+    def toTuple(self):
+        if self.sender: self.sender = self.sender.strip()
+        if self.fwd: self.fwd = self.fwd.strip()
+        if self.content: self.content = self.content.strip()
 
-# Identifiers for the element types
-MEDIA_TAG = "<media>\n"
-MESSAGE_TAG = "<msg>\n"
-NOFWD_TAG = "<nfwd>\n"
-CALL_TAG = "<call>\n"
-POLL_TAG = "<poll>\n"
+        return (self.messageID, self.timestamp, self.sender, self.fwd, self.reply, self.type, self.content)
 
-# Separator for the .csv file
-CSV_SEP = ";"
+################################################################################
 
-# Invalid flag
-args = [HELP_FLAG, TXT_FLAG, CSV_FLAG, OUTPUT_FLAG, DIR_FLAG]
-for arg in argv:
-    if arg.startswith("-") and arg not in args:
-        print("Unknown flag '{}'. Run with {} for more info.".format(arg, HELP_FLAG))
-        exit()
-
-# Help flag
-if HELP_FLAG in argv:
-    print("USAGE: python3 telegram-export-converter.py [FLAGS]")
-    print()
-    print("FLAGS:")
-    print("{} \t\t - Shows this help page.".format(HELP_FLAG))
-    print("{}, {} \t - Generates only the .txt or .csv file. Default: generates both".format(TXT_FLAG, CSV_FLAG))
-    print("{} (FILENAME) \t - Sets output filename. Default: Telegram-CHATNAME".format(OUTPUT_FLAG))
-    print("{} (DIRECTORY) \t - Runs the script as if in that directory,".format(DIR_FLAG))
-    print("\t\t but generating output files in the current directory.")
-    exit()
-
-# .txt and .csv selection flags
-if TXT_FLAG in argv and CSV_FLAG not in argv:
-    generateCSV = False
-elif CSV_FLAG in argv and TXT_FLAG not in argv:
-    generateTXT = False
-
-# Output filename flag
-if OUTPUT_FLAG in argv:
-    try:
-        outputFile = argv[argv.index(OUTPUT_FLAG)+1].split(".")[0]
-    except IndexError:
-        print("No filename informed for flag {}. Run with {} for more information.".format(OUTPUT_FLAG, HELP_FLAG))
-        exit()
-
-# Directory flag
-if DIR_FLAG in argv:
-    try:
-        dirName = argv[argv.index(DIR_FLAG)+1].replace("/", "")
-    except IndexError:
-        print("No filename informed for flag {}. Run with {} for more information.".format(DIR_FLAG, HELP_FLAG))
-        exit()
-
-# Check if directory from -d actually exists
-listdirFull = listdir()
-if dirName != "":
-    if dirName not in listdirFull or isdir(dirName) == False:
-        print("Directory '{}' doesn't exist. Exiting...".format(dirName))
-        exit()
-    print("Starting at directory '{}'. ".format(dirName))
-    chdir(dirName)
-else:
-    print("Starting...")
+print("Starting...")
+listdirFull = os.listdir()
 
 # Scans current directory for message<n>.html Telegram chat export files
 messageFiles = []
@@ -103,181 +34,185 @@ for file in listdirFull:
         messageFiles.append("messages" + (str(counter) if counter > 1 else "") + ".html")
         counter += 1
 
-if len(messageFiles) == 0:
+if not messageFiles:
     print("No message.html files found. Are you sure the script is in the right directory? Exiting...")
     exit()
 
 print("Loading all {} message files...".format(len(messageFiles)))
 
 # Loads all files content into memory
-linesRaw = []
+lines = []
 for file in messageFiles:
     with open(file, encoding="UTF-8") as f:
-        for line in f:
-            if len(line) > 0 and line != "\n":
-                linesRaw.append(line.replace("\n", "").strip() + "\n")
+        lines += [line.replace("\n", "").strip() for line in f if line.strip()]
 
-# Sets default filename as the chat's name, if not provided as argument
-if outputFile == "":
-    outputFile = "Telegram-" + linesRaw[15][:-1].replace(" ", "_")
+with open("raw.txt", "w+", encoding="UTF-8") as f:
+    for line in lines:
+        f.write(line)
+        f.write("\n")
+
+# Sets output filename as the chat's name
+chatName = lines[15]
+outputFile = "Telegram-" + chatName.replace(" ", "_") + ".csv"
+
+################################################################################
+
+messageIDNewPattern = re.compile('<div class="message default clearfix" id="([^"]+)')
+messageIDJoinedPattern = re.compile('<div class="message default clearfix joined" id="([^"]+)')
+timestampPattern = re.compile('<div class="pull_right date details" title="([^"]+)')
+
+fwdPattern = re.compile('<div class="userpic userpic\d+" style="width: 42px; height: 42px">')
+sameFWDMediaPattern = re.compile('<div class="media_wrap clearfix">')
+sameFWDTextPattern = re.compile('<div class="text">')
+
+photoPattern = re.compile('<div class="media clearfix pull_left media_photo">')
+videoPattern = re.compile('<div class="media clearfix pull_left media_video">')
+voicePattern = re.compile('<div class="media clearfix pull_left media_voice_message">')
+audioPattern = re.compile('<div class="media clearfix pull_left media_audio_file">')
+filePattern = re.compile('<div class="media clearfix pull_left media_file">')
+locationPattern = re.compile('<a class="media clearfix pull_left block_link media_location" href="[^"]+"')
+pollPattern = re.compile('<div class="media_poll">')
+replyPattern = re.compile('In reply to <a href="#go_to_([^"]+)"')
+
+fwdSenderPattern = re.compile('([^<]+)<span class="details"> ')
+linkHTMLPattern = re.compile('</?a[^<]*>')
+
+htmlTags = ["em", "strong", "code", "pre", "s"]
 
 print("Processing...")
-linesProcessed = []
+messages = []
 
-# Buffers to store sender's name (when they send many messages, it's only shown once)
-lastNameShown, lastFWDShown = "", ""
+cur = 0
+total = 0
+lastSender = None
+lastFWDSender = None
+while cur < len(lines):
+    new = True
+    messageID = re.findall(messageIDNewPattern, lines[cur])
+    if not messageID:
+        new = False
+        messageID = re.findall(messageIDJoinedPattern, lines[cur])
 
-# Processes each element and filters them
-for i in range(len(linesRaw)):
-    # Sender's name
-    if linesRaw[i] == SENDER:
-        # If it's a forward, show forwarder's name
-        if linesRaw[i-1] == FWD_MSG and linesRaw[i-11] != SENDER and linesRaw[i-10] != SENDER:
-            linesProcessed.append(lastNameShown)
+    if messageID:
+        m = Message()
+        m.line = cur
+        m.messageID = messageID[0].replace("message", "")
 
-        # Show sender's name
-        linesProcessed.append(linesRaw[i+1])
+        if new:
+            cur += 9
+            timestamp = re.findall(timestampPattern, lines[cur])
+            m.timestamp = timestamp[0]
 
-        # Save it on buffers, as original sender or forwarder
-        if FWD_SENDER not in linesRaw[i+1]:
-            lastNameShown = linesRaw[i+1]
-        else:
-            lastFWDShown = linesRaw[i+1]
+            cur += 4
+            m.sender = lines[cur]
+            lastSender = m.sender
 
-    # Message
-    elif linesRaw[i] == MESSAGE:
-        # If it's not a reply nor the first message sent nor media, show sender's name 
-        if ((linesRaw[i-3] != SENDER and linesRaw[i-3] != REPLY) or (linesRaw[i-3] == REPLY and linesRaw[i-6] != SENDER)) and (linesRaw[i-12] != MEDIA):
-            linesProcessed.append(lastNameShown)
+            cur += 3
+            m.content = lines[cur]
+        else: # Same sender as the message before
+            cur += 2
+            timestamp = re.findall(timestampPattern, lines[cur])
+            m.timestamp = timestamp[0]
 
-        # If it's a forward, show original sender's name
-        if linesRaw[i-1] == FWD_MSG:
-            linesProcessed.append(lastFWDShown)
+            m.sender = lastSender
 
-        # If it's not a media description
-        if linesRaw[i-12] != MEDIA:
-            # If it's not a forward
-            if linesRaw[i-1] != FWD_MSG and linesRaw[i-4] != FWD_MSG:
-                linesProcessed.append(NOFWD_TAG)
+            cur += 4
+            m.content = lines[cur]
 
-            linesProcessed.append(MESSAGE_TAG)
+        isFWD = re.findall(fwdPattern, m.content)
+        isSameFWDText = re.findall(sameFWDTextPattern, m.content)
+        isSameFWDMedia = re.findall(sameFWDMediaPattern, m.content)
+        isPhoto = re.findall(photoPattern, m.content)
+        isVideo = re.findall(videoPattern, m.content)
+        isVoice = re.findall(voicePattern, m.content)
+        isAudio = re.findall(audioPattern, m.content)
+        isFile = re.findall(filePattern, m.content)
+        isLocation = re.findall(locationPattern, m.content)
+        isPoll = re.findall(pollPattern, m.content)
+        isReply = re.findall(replyPattern, m.content)
 
-        # Show message
-        linesProcessed.append(linesRaw[i+1])
+        if isFWD:
+            cur += 8
+            fwdSender = re.findall(fwdSenderPattern, lines[cur])
+            m.fwd = fwdSender[0]
+            lastFWDSender = m.fwd
 
-    # Message timestamp
-    elif linesRaw[i].startswith(TIMESTAMP):
-        # Get timestamp substring from inside the tags
-        linesProcessed.append(linesRaw[i][linesRaw[i].index(TIMESTAMP) + len(TIMESTAMP):-3] + "\n")
+            cur += 3
+            m.content = lines[cur]
+        elif isSameFWDText:
+            m.fwd = lastFWDSender
 
-    # Media (audio, images, videos, gifs...)
-    elif linesRaw[i] == MEDIA:
-        # If it's not the first message sent, show sender's name
-        if linesRaw[i-8] != SENDER and linesRaw[i-11] != SENDER:
-            linesProcessed.append(lastNameShown)
+            cur += 1
+            m.content = lines[cur]
+        elif isSameFWDMedia:
+            m.fwd = lastFWDSender
 
-        # If it's not a forward
-        if linesRaw[i-9] != FWD_MSG:
-            linesProcessed.append(NOFWD_TAG)
+            m.type = "media"
 
-        # If it's regular media
-        if linesRaw[i+3] != CALL:
-            linesProcessed.append(MEDIA_TAG)
+            cur += 6
+            m.content = "["+lines[cur]+"]"
+        elif isPhoto or isVideo or isVoice or isAudio or isFile:
+            m.type = "media"
 
-            # If it has a description, show it in the same line
-            if linesRaw[i+12] == MESSAGE:
-                linesProcessed.append("[" + linesRaw[i+1][:-1] + "] ")
-            else:
-                linesProcessed.append("[" + linesRaw[i+1][:-1] + "]\n")
-        else: # It's a call
-            linesProcessed.append(CALL_TAG)
-            linesProcessed.append("\n")
+            cur += 5
+            m.content = "["+lines[cur]+"]"
+        elif isLocation:
+            m.type = "media"
 
-    # Polls
-    elif linesRaw[i] == POLL:
-        # If it's not the first message sent, show sender's name
-        if linesRaw[i-5] != SENDER and linesRaw[i-8] != SENDER:
-            linesProcessed.append(lastNameShown)
+            cur += 5
+            m.content = "["+lines[cur] + " - " + lines[cur+3] + "]"
+        elif isPoll:
+            m.type = "media"
 
-        # If it's not a forward
-        if linesRaw[i-6] != FWD_MSG:
-            linesProcessed.append(NOFWD_TAG)
+            m.content = "["+lines[cur+5] + " - " + lines[cur+2] + "]"
+        elif isReply:
+            m.reply = isReply[0].replace("message", "")
 
-        # Add tag
-        linesProcessed.append(POLL_TAG)
+            cur += 3
+            m.content = lines[cur]
 
-        # List question as message content
-        linesProcessed.append(linesRaw[i+1])
+        if isFWD or isReply:
+            isPhoto = re.findall(photoPattern, m.content)
+            isVideo = re.findall(videoPattern, m.content)
+            isVoice = re.findall(voicePattern, m.content)
+            isAudio = re.findall(audioPattern, m.content)
+            isFile = re.findall(filePattern, m.content)
+            isLocation = re.findall(locationPattern, m.content)
+            isPoll = re.findall(pollPattern, m.content)
 
-htmlEntities = {"&lt;": "<", "&gt;": ">", "&amp;": "&",
-                "&quot;": "\"", "&apos;": "'", "&cent;": "¢",
-                "&pound;": "£", "&yen;": "¥", "&euro;": "€",
-                "&copy;": "©", "&reg;": "®"}
+            if isPhoto or isVideo or isVoice or isAudio or isFile:
+                m.type = "media"
 
-# Final cleanup, to remove leftover HTML tags
-for i in range(len(linesProcessed)):
-    # Remove HTML newlines
-    linesProcessed[i] = linesProcessed[i].replace("<br>", " ")
+                cur += 5
+                m.content = "["+lines[cur]+"]"
+            elif isLocation:
+                m.type = "media"
 
-    # Remove <a> tags, keeping the links
-    linesProcessed[i] = sub(r"<a href=\".+\">", "", linesProcessed[i]).replace("</a>", " ")
+                cur += 5
+                m.content = "["+lines[cur] + " - " + lines[cur+3] + "]"
+            elif isPoll:
+                m.type = "media"
 
-    # Replace all HTML entities
-    for (k, v) in htmlEntities.items():
-        linesProcessed[i] = linesProcessed[i].replace(k, v)
+                m.content = "["+lines[cur+5] + " - " + lines[cur+2] + "]"
 
-    # Format forwarded messages
-    if FWD_SENDER in linesProcessed[i]:
-        linesProcessed[i] = linesProcessed[i].replace(FWD_SENDER, " | FWD @").replace("  | FWD @", " | FWD @").replace("</span>", "")
-        linesProcessed[i] = sub(r" +via @.+\| FWD", " | FWD", linesProcessed[i])
+        if "&" in m.content:
+            for original, replaced in entities.html5.items():
+                m.content = m.content.replace("&"+original+";", replaced)
 
-    # Remove "via @" occurences
-    linesProcessed[i] = sub(r" +via @.+", "", linesProcessed[i])
+        if "<br>" in m.content:
+            m.content = m.content.replace("<br>", "\\n")
 
-# Join lines without line endings
-skip = False
-linesFinished = []
-for i in range(len(linesProcessed)):
-    if skip:
-        skip = False
-        continue
+        for original in htmlTags:
+            m.content = m.content.replace("<"+original+">", "")
+            m.content = m.content.replace("</"+original+">", "")
 
-    if linesProcessed[i].endswith("\n"):
-        linesFinished.append(linesProcessed[i])
-    else:
-        linesFinished.append(linesProcessed[i] + linesProcessed[i+1])
-        skip = True
+        if "<a" in m.content:
+            m.content = re.sub(linkHTMLPattern, "", m.content)
 
-# If inside a directory, go back
-if DIR_FLAG in argv:
-    chdir("..")
+        messages.append(m)
+    cur += 1
 
-# Writes to .txt
-if generateTXT:
-    print("Writing to file '{}.txt'...".format(outputFile))
-    with open(outputFile + ".txt", "w", encoding="UTF-16") as f:
-        for line in linesFinished:
-            f.write(line)
-
-# Writes to .csv
-if generateCSV:
-    print("Writing to file '{}.csv'...".format(outputFile))
-    with open(outputFile + ".csv", "w", encoding="UTF-16") as f:
-        for i in range(len(linesFinished)):
-            linesFinished[i] = linesFinished[i].replace("\n", "")
-            linesFinished[i] = linesFinished[i].replace("\"", "'")
-
-        try:
-            assert len(linesFinished) % 5 == 0
-        except AssertionError:
-            print("Something bad happened. Exiting...")
-            exit()
-
-        for i in range(0, len(linesFinished), 5):
-            f.write("\"" + linesFinished[i] + "\"" + CSV_SEP)
-            f.write("\"" + linesFinished[i+1] + "\"" + CSV_SEP)
-            f.write("\"" + linesFinished[i+2] + "\"" + CSV_SEP)
-            f.write("\"" + linesFinished[i+3] + "\"" + CSV_SEP)
-            f.write("\"" + linesFinished[i+4] + "\"" + "\n")
+with open(outputFile, "w+", encoding="UTF-8", newline="") as f:
+    csv.writer(f).writerows([m.toTuple() for m in messages])
 
 print("All done!")
