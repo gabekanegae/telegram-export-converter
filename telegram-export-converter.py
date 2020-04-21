@@ -41,6 +41,7 @@ voicePattern = re.compile('<div class="media clearfix pull_left media_voice_mess
 audioPattern = re.compile('<div class="media clearfix pull_left media_audio_file">')
 filePattern = re.compile('<div class="media clearfix pull_left media_file">')
 locationPattern = re.compile('<a class="media clearfix pull_left block_link media_location" href="[^"]+"')
+callPattern = re.compile('<div class="media clearfix pull_left media_call( success)?">')
 pollPattern = re.compile('<div class="media_poll">')
 
 linkHTMLPattern = re.compile('</?a[^<]*>')
@@ -165,6 +166,7 @@ while cur < len(lines):
     isAudio = re.match(audioPattern, m.content)
     isFile = re.match(filePattern, m.content)
     isLocation = re.match(locationPattern, m.content)
+    isCall = re.match(callPattern, m.content)
     isPoll = re.match(pollPattern, m.content)
 
     # Write type of media as content
@@ -173,9 +175,12 @@ while cur < len(lines):
         m.content = "["+lines[cur]+"]"
     elif isLocation:
         cur += 5
-        m.content = "["+lines[cur] + " - " + lines[cur+3] + "]"
+        m.content = "["+lines[cur]+" - "+lines[cur+3]+"]"
+    elif isCall:
+        cur += 8
+        m.content = "[Call - "+lines[cur]+"]"
     elif isPoll:
-        m.content = "["+lines[cur+5] + " - " + lines[cur+2] + "]"
+        m.content = "["+lines[cur+5]+" - "+lines[cur+2]+"]"
 
     # Replace HTML entities with characters
     if "&" in m.content:
