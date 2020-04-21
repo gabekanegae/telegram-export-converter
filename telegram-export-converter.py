@@ -52,7 +52,12 @@ htmlTags = ["em", "strong", "code", "pre", "s"]
 print("Starting...")
 
 # Scans current directory for message<n>.html Telegram chat export files
-messageFiles = [file for file in os.listdir() if file.startswith("messages") and file.endswith(".html")]
+messageFiles = []
+n = 1
+for file in os.listdir():
+    if file.startswith("messages") and file.endswith(".html"):
+        messageFiles.append("messages" + (str(n) if n > 1 else "") + ".html")
+        n += 1
 
 if not messageFiles:
     print("No message.html files found. Are you sure the script is in the right directory? Exiting...")
