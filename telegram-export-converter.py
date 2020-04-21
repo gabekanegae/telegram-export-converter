@@ -90,13 +90,19 @@ lastSender = None
 lastFWDSender = None
 
 while cur < len(lines):
-    # Check if it's a new sender's message 
+    # Skip lines that aren't the start of a message
+    if not lines[cur].startswith("<div class="):
+        cur += 1
+        continue
+
+    # Check if it's a new sender's message
     new = True
     messageID = re.findall(messageIDNewPattern, lines[cur])
     if not messageID:
         new = False
         messageID = re.findall(messageIDJoinedPattern, lines[cur])
 
+    # Skip lines that aren't the start of a message
     if not messageID:
         cur += 1
         continue
@@ -160,27 +166,28 @@ while cur < len(lines):
         cur += 3
         m.content = lines[cur]
 
-    isPhoto = re.match(photoPattern, m.content)
-    isVideo = re.match(videoPattern, m.content)
-    isVoice = re.match(voicePattern, m.content)
-    isAudio = re.match(audioPattern, m.content)
-    isFile = re.match(filePattern, m.content)
-    isLocation = re.match(locationPattern, m.content)
-    isCall = re.match(callPattern, m.content)
-    isPoll = re.match(pollPattern, m.content)
+    if m.content.startswith("<"):
+        isPhoto = re.match(photoPattern, m.content)
+        isVideo = re.match(videoPattern, m.content)
+        isVoice = re.match(voicePattern, m.content)
+        isAudio = re.match(audioPattern, m.content)
+        isFile = re.match(filePattern, m.content)
+        isLocation = re.match(locationPattern, m.content)
+        isCall = re.match(callPattern, m.content)
+        isPoll = re.match(pollPattern, m.content)
 
-    # Write type of media as content
-    if any([isPhoto, isVideo, isVoice, isAudio, isFile]):
-        cur += 5
-        m.content = "["+lines[cur]+"]"
-    elif isLocation:
-        cur += 5
-        m.content = "["+lines[cur]+" - "+lines[cur+3]+"]"
-    elif isCall:
-        cur += 8
-        m.content = "[Call - "+lines[cur]+"]"
-    elif isPoll:
-        m.content = "["+lines[cur+5]+" - "+lines[cur+2]+"]"
+        # Write type of media as content
+        if any([isPhoto, isVideo, isVoice, isAudio, isFile]):
+            cur += 5
+            m.content = "["+lines[cur]+"]"
+        elif isLocation:
+            cur += 5
+            m.content = "["+lines[cur]+" - "+lines[cur+3]+"]"
+        elif isCall:
+            cur += 8
+            m.content = "[Call - "+lines[cur]+"]"
+        elif isPoll:
+            m.content = "["+lines[cur+5]+" - "+lines[cur+2]+"]"
 
     # Replace HTML entities with characters
     if "&" in m.content:
