@@ -125,7 +125,13 @@ while cur < len(lines):
     isReply = re.findall(replyPattern, m.content)
 
     if isFWD:
-        cur += 8
+        # If it's from a Deleted Account, no initial is
+        # shown as avatar, so there's a line less to skip
+        if lines[cur+2] == "</div>":
+            cur += 7
+        else:
+            cur += 8
+        
         fwdSender = re.findall(fwdSenderPattern, lines[cur])
         m.fwd = fwdSender[0]
         lastFWDSender = m.fwd
@@ -185,7 +191,7 @@ while cur < len(lines):
     if "<a" in m.content:
         m.content = re.sub(linkHTMLPattern, "", m.content)
 
-    # Remove '</div>' (happens when it's an animated dice roll - might change soon?)
+    # Handle dice rolls, as they're not logged properly by Telegram (might change soon?)
     if m.content == "</div>":
         m.content = "[Dice roll]"
 
