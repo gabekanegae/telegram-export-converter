@@ -1,4 +1,4 @@
-from html import entities
+from html import unescape
 from time import time
 from sys import argv
 import csv
@@ -16,10 +16,10 @@ class Message:
 
     def toTuple(self):
         if self.messageID: self.messageID = self.messageID.replace("message", "")
-        if self.sender: self.sender = self.sender.strip()
-        if self.fwd: self.fwd = self.fwd.strip()
+        if self.sender: self.sender = unescape(self.sender.strip())
+        if self.fwd: self.fwd = unescape(self.fwd.strip())
         if self.reply: self.reply = self.reply.replace("message", "")
-        if self.content: self.content = self.content.strip()
+        if self.content: self.content = unescape(self.content.strip())
 
         return (self.messageID, self.timestamp, self.sender, self.fwd, self.reply, self.content)
 
@@ -161,7 +161,7 @@ while cur < len(lines):
         cur += 6
         m.content = "["+lines[cur]+"]"
     elif isReply:
-        m.reply = isReply[0].replace("message", "")
+        m.reply = isReply[0]
 
         cur += 3
         m.content = lines[cur]
@@ -188,11 +188,6 @@ while cur < len(lines):
             m.content = "[Call - "+lines[cur]+"]"
         elif isPoll:
             m.content = "["+lines[cur+5]+" - "+lines[cur+2]+"]"
-
-    # Replace HTML entities with characters
-    if "&" in m.content:
-        for original, replaced in entities.html5.items():
-            m.content = m.content.replace("&"+original+";", replaced)
 
     # Replace HTML line breaks
     if "<br>" in m.content:
