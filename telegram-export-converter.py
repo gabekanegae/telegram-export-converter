@@ -33,7 +33,7 @@ fwdPattern = re.compile('<div class="userpic userpic\d+" style="width: 42px; hei
 fwdSenderPattern = re.compile('([^<]+)<span class="details"> ')
 sameFWDMediaPattern = re.compile('<div class="media_wrap clearfix">')
 sameFWDTextPattern = re.compile('<div class="text">')
-replyPattern = re.compile('In reply to <a href="#go_to_([^"]+)"')
+replyPattern = re.compile('In reply to <a href="(?:messages\d*.html)?#go_to_([^"]+)"')
 
 photoPattern = re.compile('<div class="media clearfix pull_left media_photo">')
 videoPattern = re.compile('<div class="media clearfix pull_left media_video">')
