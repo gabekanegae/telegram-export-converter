@@ -45,6 +45,7 @@ contactLinkPattern = re.compile('<a class="media clearfix pull_left block_link m
 locationLinkPattern = re.compile('<a class="media clearfix pull_left block_link media_location" href="[^"]+"')
 callPattern = re.compile('<div class="media clearfix pull_left media_call( success)?">')
 pollPattern = re.compile('<div class="media_poll">')
+gamePattern = re.compile('<a class="media clearfix pull_left block_link media_game" href="[^"]+">')
 
 linkHTMLPattern = re.compile('</?a[^<]*>')
 
@@ -185,6 +186,7 @@ while cur < len(lines):
         isLocationLink = re.match(locationLinkPattern, m.content)
         isCall = re.match(callPattern, m.content)
         isPoll = re.match(pollPattern, m.content)
+        isGame = re.match(gamePattern, m.content)
 
         # Write type of media as content
         if any([isPhoto, isVideo, isVoice, isAudio, isFile]):
@@ -201,6 +203,8 @@ while cur < len(lines):
             m.content = "[Call - "+lines[cur]+"]"
         elif isPoll:
             m.content = "["+lines[cur+5]+" - "+lines[cur+2]+"]"
+        elif isGame:
+            m.content = "[Game - "+lines[cur+5]+" - "+lines[cur+11]+"]"            
 
     # Replace HTML line breaks
     if "<br>" in m.content:
