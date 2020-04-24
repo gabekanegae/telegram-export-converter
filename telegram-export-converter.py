@@ -203,9 +203,9 @@ while cur < len(lines):
     if "<a" in m.content:
         m.content = re.sub(linkHTMLPattern, "", m.content)
 
-    # Handle dice rolls, as they're not logged properly by Telegram (might change soon?)
+    # Handle animated emojis, as they're not logged properly by Telegram (might change soon?)
     if m.content == "</div>":
-        m.content = "[Dice roll]"
+        m.content = "[Animated emoji]"
 
     messages.append(m)
     cur += 1
