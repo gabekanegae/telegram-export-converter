@@ -111,7 +111,13 @@ while cur < len(lines):
     m.messageID = messageID[0]
 
     if new: # New sender
-        cur += 9
+        # If it's from a Deleted Account, no initial is
+        # shown as avatar, so there's a line less to skip
+        if lines[cur+4] == "</div>":
+            cur += 8
+        else:
+            cur += 9
+
         timestamp = re.findall(timestampPattern, lines[cur])
         m.timestamp = timestamp[0]
 
