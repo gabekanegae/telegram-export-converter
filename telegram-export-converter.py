@@ -40,7 +40,9 @@ videoPattern = re.compile('<div class="media clearfix pull_left media_video">')
 voicePattern = re.compile('<div class="media clearfix pull_left media_voice_message">')
 audioPattern = re.compile('<div class="media clearfix pull_left media_audio_file">')
 filePattern = re.compile('<div class="media clearfix pull_left media_file">')
-locationPattern = re.compile('<a class="media clearfix pull_left block_link media_location" href="[^"]+"')
+contactPattern = re.compile('<div class="media clearfix pull_left media_contact">')
+contactLinkPattern = re.compile('<a class="media clearfix pull_left block_link media_contact" href="[^"]+"')
+locationLinkPattern = re.compile('<a class="media clearfix pull_left block_link media_location" href="[^"]+"')
 callPattern = re.compile('<div class="media clearfix pull_left media_call( success)?">')
 pollPattern = re.compile('<div class="media_poll">')
 
@@ -178,7 +180,9 @@ while cur < len(lines):
         isVoice = re.match(voicePattern, m.content)
         isAudio = re.match(audioPattern, m.content)
         isFile = re.match(filePattern, m.content)
-        isLocation = re.match(locationPattern, m.content)
+        isContact = re.match(contactPattern, m.content)
+        isContactLink = re.match(contactLinkPattern, m.content)
+        isLocationLink = re.match(locationLinkPattern, m.content)
         isCall = re.match(callPattern, m.content)
         isPoll = re.match(pollPattern, m.content)
 
@@ -186,7 +190,10 @@ while cur < len(lines):
         if any([isPhoto, isVideo, isVoice, isAudio, isFile]):
             cur += 5
             m.content = "["+lines[cur]+"]"
-        elif isLocation:
+        elif isContact or isContactLink:
+            cur += 5
+            m.content = "[Contact - "+lines[cur]+" - "+lines[cur+3]+"]"            
+        elif isLocationLink:
             cur += 5
             m.content = "["+lines[cur]+" - "+lines[cur+3]+"]"
         elif isCall:
