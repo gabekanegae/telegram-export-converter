@@ -1,7 +1,9 @@
 # Telegram Export and Converter Tool
-A Python script to convert Telegram `.html` chat export files to easier to process `.csv`.
+[![python](https://img.shields.io/badge/Python-3.8.0-blue.svg)](https://docs.python.org/release/3.8.0/whatsnew/changelog.html#changelog)
+[![telegram](https://img.shields.io/badge/Telegram-2.1.10-blue.svg)](https://desktop.telegram.org/changelog#v-2-1-10-05-06-20)
+[![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/KanegaeGabriel/telegram-export-converter/blob/master/README.md)
 
-Made and tested with Python 3.8.0
+A Python script to convert Telegram `.html` chat export files to easier to process `.csv`.
 
 **As of June 5th 2020, Telegram Desktop [v2.1.10](https://desktop.telegram.org/changelog#v-2-1-10-05-06-20) now allows individual chats to be exported as JSON as well.**
 
