@@ -30,7 +30,7 @@ messageIDJoinedPattern = re.compile('<div class="message default clearfix joined
 timestampPattern = re.compile('<div class="pull_right date details" title="([^"]+)')
 
 fwdPattern = re.compile('<div class="userpic userpic\d+" style="width: 42px; height: 42px">')
-fwdSenderPattern = re.compile('([^<]+)<span class="details"> ')
+fwdSenderPattern = re.compile('([^<]+)<span class="date details')
 sameFWDMediaPattern = re.compile('<div class="media_wrap clearfix">')
 sameFWDTextPattern = re.compile('<div class="text">')
 replyPattern = re.compile('In reply to <a href="(?:messages\d*.html)?#go_to_([^"]+)"')
