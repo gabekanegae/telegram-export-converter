@@ -16,6 +16,7 @@ class Message:
 
     def toTuple(self):
         if self.message_id: self.message_id = self.message_id.replace('message', '')
+        if self.timestamp: self.timestamp = ' '.join(self.timestamp.split()[:2])
         if self.sender: self.sender = unescape(self.sender.strip())
         if self.fwd: self.fwd = unescape(self.fwd.strip())
         if self.reply: self.reply = self.reply.replace('message', '')
