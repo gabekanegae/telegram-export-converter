@@ -225,10 +225,10 @@ while cur < len(lines):
         m.content = m.content.replace('<br>', '\\n')
 
     # Remove HTML formatting tags
-    if '<' in m.content:
-        for original in html_tags:
-            m.content = m.content.replace('<{original}>', '')
-            m.content = m.content.replace('</{original}>', '')
+    if '<' in m.content and any(f'<{tag}>' in m.content for tag in html_tags):
+        for tag in html_tags:
+            m.content = m.content.replace(f'<{tag}>', '')
+            m.content = m.content.replace(f'</{tag}>', '')
 
     # Remove <a> tags
     if '<a' in m.content:
