@@ -229,6 +229,8 @@ while cur < len(lines):
 
 # Write CSV
 with open(outputFile, "w+", encoding="UTF-8", newline="") as f:
-    csv.writer(f).writerows([m.toTuple() for m in messages])
+    writer = csv.writer(f)
+    writer.writerow(list(messages[0].__dict__.keys()))
+    writer.writerows([m.toTuple() for m in messages])
 
 print("Written to '{}' in {:.2f}s.".format(outputFile, time()-t0))
