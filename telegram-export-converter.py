@@ -50,6 +50,7 @@ poll_pattern = re.compile('<div class="media_poll">')
 game_pattern = re.compile('<a class="media clearfix pull_left block_link media_game" href="[^"]+">')
 
 html_link_pattern = re.compile('</?a[^<]*>')
+html_span_pattern = re.compile('</?span[^<]*>')
 
 html_tags = ['em', 'strong', 'code', 'pre', 's']
 
@@ -230,9 +231,11 @@ while cur < len(lines):
             m.content = m.content.replace(f'<{tag}>', '')
             m.content = m.content.replace(f'</{tag}>', '')
 
-    # Remove <a> tags
+    # Remove HTML tags with args
     if '<a' in m.content:
         m.content = re.sub(html_link_pattern, '', m.content)
+    if '<span' in m.content:
+        m.content = re.sub(html_span_pattern, '', m.content)
 
     # Handle animated emojis, as they're not logged properly by Telegram (might change soon?)
     if m.content == '</div>':
