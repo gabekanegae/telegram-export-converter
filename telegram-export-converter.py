@@ -16,6 +16,7 @@ class Message:
 
     def toTuple(self):
         if self.message_id: self.message_id = self.message_id.replace('message', '')
+        if self.timestamp: self.timestamp = ' '.join(self.timestamp.split()[:2])
         if self.sender: self.sender = unescape(self.sender.strip())
         if self.fwd: self.fwd = unescape(self.fwd.strip())
         if self.reply: self.reply = self.reply.replace('message', '')
@@ -30,6 +31,7 @@ message_id_joined_pattern = re.compile('<div class="message default clearfix joi
 timestamp_pattern = re.compile('<div class="pull_right date details" title="([^"]+)')
 
 fwd_pattern = re.compile('<div class="userpic userpic\d+" style="width: 42px; height: 42px">')
+fwd_reply_pattern = re.compile('<div class="reply_to details">')
 fwd_sender_pattern = re.compile('([^<]+)<span class="date details')
 same_fwd_media_pattern = re.compile('<div class="media_wrap clearfix">')
 same_fwd_text_pattern = re.compile('<div class="text">')
@@ -48,6 +50,7 @@ poll_pattern = re.compile('<div class="media_poll">')
 game_pattern = re.compile('<a class="media clearfix pull_left block_link media_game" href="[^"]+">')
 
 html_link_pattern = re.compile('</?a[^<]*>')
+html_span_pattern = re.compile('</?span[^<]*>')
 
 html_tags = ['em', 'strong', 'code', 'pre', 's']
 
@@ -144,6 +147,7 @@ while cur < len(lines):
     is_same_fwd_text = re.match(same_fwd_text_pattern, m.content)
     is_same_fwd_media = re.match(same_fwd_media_pattern, m.content)
     is_reply = re.findall(reply_pattern, m.content)
+    is_fwd_reply_same_fwd_text = re.findall(fwd_reply_pattern, m.content)
 
     if is_fwd:
         # If it's from a Deleted Account, no initial is
@@ -157,7 +161,18 @@ while cur < len(lines):
         m.fwd = fwd_sender[0]
         last_fwd_sender = m.fwd
 
-        cur += 3
+        cur += 2
+        is_fwd_reply = re.findall(fwd_reply_pattern, lines[cur])
+        if is_fwd_reply:
+            cur += 4
+        else:
+            cur += 1
+
+        m.content = lines[cur]
+    elif is_fwd_reply_same_fwd_text:
+        m.fwd = last_fwd_sender
+
+        cur += 4
         m.content = lines[cur]
     elif is_same_fwd_text:
         m.fwd = last_fwd_sender
@@ -194,7 +209,7 @@ while cur < len(lines):
             m.content = f'[{lines[cur]}]'
         elif is_contact or is_contact_link:
             cur += 5
-            m.content = f'[Contact - {lines[cur]} - {lines[cur+3]}]'            
+            m.content = f'[Contact - {lines[cur]} - {lines[cur+3]}]'
         elif is_location_link:
             cur += 5
             m.content = f'[{lines[cur]} - {lines[cur+3]}]'
@@ -204,21 +219,23 @@ while cur < len(lines):
         elif is_poll:
             m.content = f'[{lines[cur+5]} - {lines[cur+2]}]'
         elif is_game:
-            m.content = f'[Game - {lines[cur+5]} - {lines[cur+11]}]'            
+            m.content = f'[Game - {lines[cur+5]} - {lines[cur+11]}]'
 
     # Replace HTML line breaks
     if '<br>' in m.content:
         m.content = m.content.replace('<br>', '\\n')
 
     # Remove HTML formatting tags
-    if '<' in m.content:
-        for original in html_tags:
-            m.content = m.content.replace('<{original}>', '')
-            m.content = m.content.replace('</{original}>', '')
+    if '<' in m.content and any(f'<{tag}>' in m.content for tag in html_tags):
+        for tag in html_tags:
+            m.content = m.content.replace(f'<{tag}>', '')
+            m.content = m.content.replace(f'</{tag}>', '')
 
-    # Remove <a> tags
+    # Remove HTML tags with args
     if '<a' in m.content:
         m.content = re.sub(html_link_pattern, '', m.content)
+    if '<span' in m.content:
+        m.content = re.sub(html_span_pattern, '', m.content)
 
     # Handle animated emojis, as they're not logged properly by Telegram (might change soon?)
     if m.content == '</div>':
