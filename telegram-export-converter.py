@@ -125,7 +125,10 @@ while cur < len(lines):
             cur += 9
 
         timestamp = re.findall(timestamp_pattern, lines[cur])
-        m.timestamp = timestamp[0]
+        if timestamp:
+            m.timestamp = timestamp[0]
+        else:
+            m.timestamp = None
 
         cur += 4
         m.sender = lines[cur]
@@ -136,7 +139,10 @@ while cur < len(lines):
     else: # Same sender as the message before
         cur += 2
         timestamp = re.findall(timestamp_pattern, lines[cur])
-        m.timestamp = timestamp[0]
+        if timestamp:
+            m.timestamp = timestamp[0]
+        else:
+            m.timestamp = None
 
         m.sender = last_sender
 
